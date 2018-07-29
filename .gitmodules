@@ -1,0 +1,3 @@
+[submodule "gd-master/modules/moonman"]
+	path = gd-master/modules/moonman
+	url = https://github.com/OliPerraul/godot-moonman.git
