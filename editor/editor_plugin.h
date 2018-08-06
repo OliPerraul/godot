@@ -72,7 +72,7 @@ public:
 
 	Control *get_editor_viewport();
 	void edit_resource(const Ref<Resource> &p_resource);
-	void open_scene_from_path(const String &scene_path);
+	void from_path(const String &scene_path);
 	void reload_scene_from_path(const String &scene_path);
 
 	Node *get_edited_scene_root();

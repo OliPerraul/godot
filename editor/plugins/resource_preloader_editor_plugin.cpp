@@ -253,7 +253,7 @@ void ResourcePreloaderEditor::_cell_button_pressed(Object *p_item, int p_column,
 	String rpath = item->get_text(p_column);
 
 	if (p_id == BUTTON_SUBSCENE) {
-		EditorInterface::get_singleton()->open_scene_from_path(rpath);
+		EditorInterface::get_singleton()->from_path(rpath);
 	}
 }
 

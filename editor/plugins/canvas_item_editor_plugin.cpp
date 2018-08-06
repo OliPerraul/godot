@@ -1339,7 +1339,7 @@ bool CanvasItemEditor::_gui_input_rotate(const Ref<InputEvent> &p_event) {
 	return false;
 }
 
-bool CanvasItemEditor::_gui_input_open_scene_on_double_click(const Ref<InputEvent> &p_event) {
+bool CanvasItemEditor::_gui_input_on_double_click(const Ref<InputEvent> &p_event) {
 	Ref<InputEventMouseButton> b = p_event;
 
 	// Open a sub-scene on double-click
@@ -2041,7 +2041,7 @@ void CanvasItemEditor::_gui_input_viewport(const Ref<InputEvent> &p_event) {
 		//printf("Rulers and guides\n");
 	} else if ((accepted = editor->get_editor_plugins_over()->forward_gui_input(p_event))) {
 		//printf("Plugin\n");
-	} else if ((accepted = _gui_input_open_scene_on_double_click(p_event))) {
+	} else if ((accepted = _gui_input_on_double_click(p_event))) {
 		//printf("Open scene on double click\n");
 	} else if ((accepted = _gui_input_anchors(p_event))) {
 		//printf("Anchors\n");

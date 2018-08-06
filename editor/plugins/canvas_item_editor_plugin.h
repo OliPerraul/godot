@@ -419,7 +419,7 @@ class CanvasItemEditor : public VBoxContainer {
 
 	bool _gui_input_anchors(const Ref<InputEvent> &p_event);
 	bool _gui_input_move(const Ref<InputEvent> &p_event);
-	bool _gui_input_open_scene_on_double_click(const Ref<InputEvent> &p_event);
+	bool _gui_input_on_double_click(const Ref<InputEvent> &p_event);
 	bool _gui_input_pivot(const Ref<InputEvent> &p_event);
 	bool _gui_input_resize(const Ref<InputEvent> &p_event);
 	bool _gui_input_rotate(const Ref<InputEvent> &p_event);

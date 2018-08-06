@@ -161,7 +161,7 @@ void EditorInterface::edit_resource(const Ref<Resource> &p_resource) {
 	EditorNode::get_singleton()->edit_resource(p_resource);
 }
 
-void EditorInterface::open_scene_from_path(const String &scene_path) {
+void EditorInterface::from_path(const String &scene_path) {
 
 	if (EditorNode::get_singleton()->is_changing_scene()) {
 		return;
@@ -268,7 +268,7 @@ void EditorInterface::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_script_editor"), &EditorInterface::get_script_editor);
 	ClassDB::bind_method(D_METHOD("get_base_control"), &EditorInterface::get_base_control);
 	ClassDB::bind_method(D_METHOD("edit_resource", "resource"), &EditorInterface::edit_resource);
-	ClassDB::bind_method(D_METHOD("open_scene_from_path", "scene_filepath"), &EditorInterface::open_scene_from_path);
+	ClassDB::bind_method(D_METHOD("from_path", "scene_filepath"), &EditorInterface::from_path);
 	ClassDB::bind_method(D_METHOD("reload_scene_from_path", "scene_filepath"), &EditorInterface::reload_scene_from_path);
 	ClassDB::bind_method(D_METHOD("get_open_scenes"), &EditorInterface::get_open_scenes);
 	ClassDB::bind_method(D_METHOD("get_edited_scene_root"), &EditorInterface::get_edited_scene_root);
