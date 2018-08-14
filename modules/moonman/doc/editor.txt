@@ -1,0 +1,32 @@
+
+NOTE:
+	The idea is to eventually have both the in-game editor and the godot editor  inherit from  abstract editor components.
+
+
+			--ABSTRACT_EDIT--
+		 /					\
+		/					 \
+	--INGAME_EDIT--		--GODOT_EDIT--
+
+	The main reason for this is to reduce code duplication and benefits from the update on main branch.
+
+	
+
+NOTE
+	MoMaTypes should not be exposed to the user. Godot lack of support for namespace necesitate such convention.
+
+	
+
+NOTE 
+	
+	p_variable
+	r_variable
+
+		signify input parameter, output parameter respectively
+
+
+NOTE
+
+	Incorporate/implement strictly what is necessary through c++ modules
+
+	Favor GDNative + GDScript whenever possible
