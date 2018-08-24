@@ -1009,8 +1009,6 @@ int GDScriptCompiler::_parse_expression(CodeGen &codegen, const GDScriptParser::
 							return prev_pos;
 						int retval = prev_pos;
 
-						//print_line("retval: "+itos(retval));
-
 						if (retval & GDScriptFunction::ADDR_TYPE_STACK << GDScriptFunction::ADDR_BITS) {
 							slevel++;
 							codegen.alloc_stack(slevel);
@@ -1994,8 +1992,11 @@ Error GDScriptCompiler::_parse_class_level(GDScript *p_script, GDScript *p_owner
 		p_script->_signals[name] = p_class->_signals[i].arguments;
 	}
 
-	if (!p_class->owner) {
+	if (p_class->owner) {
 		parsed_classes.insert(p_class->name);
+		if (parsing_classes.has(p_class->name)) {
+			parsing_classes.erase(p_class->name);
+		}
 	}
 
 	//parse sub-classes
@@ -2011,7 +2012,6 @@ Error GDScriptCompiler::_parse_class_level(GDScript *p_script, GDScript *p_owner
 			Error err = _parse_class_level(subclass.ptr(), p_script, p_class->subclasses[i], p_keep_state);
 			if (err)
 				return err;
-			parsing_classes.erase(name);
 		}
 
 #ifdef TOOLS_ENABLED
@@ -2071,8 +2071,6 @@ Error GDScriptCompiler::_parse_class_blocks(GDScript *p_script, const GDScriptPa
 	//validate instances if keeping state
 
 	if (p_keep_state) {
-
-		print_line("RELOAD KEEP " + p_script->path);
 		for (Set<Object *>::Element *E = p_script->instances.front(); E;) {
 
 			Set<Object *>::Element *N = E->next();
