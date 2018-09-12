@@ -504,6 +504,13 @@ void ScriptEditor::_open_recent_script(int p_idx) {
 			return;
 		}
 		// if it's a path then its most likely a deleted file not help
+	} else if (path.find("::") != -1) {
+		// built-in script
+		Ref<Script> script = ResourceLoader::load(path);
+		if (script.is_valid()) {
+			edit(script, true);
+			return;
+		}
 	} else if (!path.is_resource_file()) {
 		_help_class_open(path);
 		return;
@@ -862,7 +869,7 @@ void ScriptEditor::_file_dialog_action(String p_file) {
 			if (extensions.find(p_file.get_extension())) {
 				Ref<Script> scr = ResourceLoader::load(p_file);
 				if (!scr.is_valid()) {
-					editor->show_warning(TTR("Error could not load file."), TTR("Error!"));
+					editor->show_warning(TTR("Error: could not load file."), TTR("Error!"));
 					file_dialog_option = -1;
 					return;
 				}
@@ -1692,7 +1699,6 @@ void ScriptEditor::_update_script_names() {
 	if (restoring_layout)
 		return;
 
-	waiting_update_names = false;
 	Set<Ref<Script> > used;
 	Node *edited = EditorNode::get_singleton()->get_edited_scene();
 	if (edited) {
@@ -1816,8 +1822,12 @@ void ScriptEditor::_update_script_names() {
 		}
 	}
 
-	_update_members_overview();
-	_update_help_overview();
+	if (!waiting_update_names) {
+		_update_members_overview();
+		_update_help_overview();
+	} else {
+		waiting_update_names = false;
+	}
 	_update_members_overview_visibility();
 	_update_help_overview_visibility();
 	_update_script_colors();

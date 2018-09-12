@@ -274,21 +274,70 @@ Error OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 		opengl_api_type = ContextGL_X11::GLES_2_0_COMPATIBLE;
 	}
 
-	context_gl = memnew(ContextGL_X11(x11_display, x11_window, current_videomode, opengl_api_type));
-	context_gl->initialize();
+	bool editor = Engine::get_singleton()->is_editor_hint();
+	bool gl_initialization_error = false;
 
-	switch (opengl_api_type) {
-		case ContextGL_X11::GLES_2_0_COMPATIBLE: {
-			RasterizerGLES2::register_config();
-			RasterizerGLES2::make_current();
-		} break;
-		case ContextGL_X11::GLES_3_0_COMPATIBLE: {
-			RasterizerGLES3::register_config();
-			RasterizerGLES3::make_current();
-		} break;
+	context_gl = NULL;
+	while (!context_gl) {
+		context_gl = memnew(ContextGL_X11(x11_display, x11_window, current_videomode, opengl_api_type));
+
+		if (context_gl->initialize() != OK) {
+			memdelete(context_gl);
+			context_gl = NULL;
+
+			if (GLOBAL_GET("rendering/quality/driver/driver_fallback") == "Best" || editor) {
+				if (p_video_driver == VIDEO_DRIVER_GLES2) {
+					gl_initialization_error = true;
+					break;
+				}
+
+				p_video_driver = VIDEO_DRIVER_GLES2;
+				opengl_api_type = ContextGL_X11::GLES_2_0_COMPATIBLE;
+			} else {
+				gl_initialization_error = true;
+				break;
+			}
+		}
 	}
 
-	video_driver_index = p_video_driver; // FIXME TODO - FIX IF DRIVER DETECTION HAPPENS AND GLES2 MUST BE USED
+	while (true) {
+		if (opengl_api_type == ContextGL_X11::GLES_3_0_COMPATIBLE) {
+			if (RasterizerGLES3::is_viable() == OK) {
+				RasterizerGLES3::register_config();
+				RasterizerGLES3::make_current();
+				break;
+			} else {
+				if (GLOBAL_GET("rendering/quality/driver/driver_fallback") == "Best" || editor) {
+					p_video_driver = VIDEO_DRIVER_GLES2;
+					opengl_api_type = ContextGL_X11::GLES_2_0_COMPATIBLE;
+					continue;
+				} else {
+					gl_initialization_error = true;
+					break;
+				}
+			}
+		}
+
+		if (opengl_api_type == ContextGL_X11::GLES_2_0_COMPATIBLE) {
+			if (RasterizerGLES2::is_viable() == OK) {
+				RasterizerGLES2::register_config();
+				RasterizerGLES2::make_current();
+				break;
+			} else {
+				gl_initialization_error = true;
+				break;
+			}
+		}
+	}
+
+	if (gl_initialization_error) {
+		OS::get_singleton()->alert("Your video card driver does not support any of the supported OpenGL versions.\n"
+								   "Please update your drivers or if you have a very old or integrated GPU upgrade it.",
+				"Unable to initialize Video driver");
+		return ERR_UNAVAILABLE;
+	}
+
+	video_driver_index = p_video_driver;
 
 	context_gl->set_use_vsync(current_videomode.use_vsync);
 
@@ -338,8 +387,6 @@ Error OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 		current_videomode.always_on_top = false;
 		set_window_always_on_top(true);
 	}
-
-	AudioDriverManager::initialize(p_audio_driver);
 
 	ERR_FAIL_COND_V(!visual_server, ERR_UNAVAILABLE);
 	ERR_FAIL_COND_V(x11_window == 0, ERR_UNAVAILABLE);
@@ -509,6 +556,8 @@ Error OS_X11::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 	requested = None;
 
 	visual_server->init();
+
+	AudioDriverManager::initialize(p_audio_driver);
 
 	input = memnew(InputDefault);
 
@@ -2485,7 +2534,9 @@ void OS_X11::set_custom_mouse_cursor(const RES &p_cursor, CursorShape p_shape, c
 		}
 
 		ERR_FAIL_COND(!texture.is_valid());
+		ERR_FAIL_COND(p_hotspot.x < 0 || p_hotspot.y < 0);
 		ERR_FAIL_COND(texture_size.width > 256 || texture_size.height > 256);
+		ERR_FAIL_COND(p_hotspot.x > texture_size.width || p_hotspot.y > texture_size.height);
 
 		image = texture->get_data();
 
@@ -2628,41 +2679,82 @@ void OS_X11::alert(const String &p_alert, const String &p_title) {
 	return;
 }
 
+bool g_set_icon_error = false;
+int set_icon_errorhandler(Display *dpy, XErrorEvent *ev) {
+	g_set_icon_error = true;
+	return 0;
+}
+
 void OS_X11::set_icon(const Ref<Image> &p_icon) {
+	int (*oldHandler)(Display *, XErrorEvent *) = XSetErrorHandler(&set_icon_errorhandler);
+
 	Atom net_wm_icon = XInternAtom(x11_display, "_NET_WM_ICON", False);
 
 	if (p_icon.is_valid()) {
 		Ref<Image> img = p_icon->duplicate();
 		img->convert(Image::FORMAT_RGBA8);
 
-		int w = img->get_width();
-		int h = img->get_height();
+		while (true) {
+			int w = img->get_width();
+			int h = img->get_height();
 
-		// We're using long to have wordsize (32Bit build -> 32 Bits, 64 Bit build -> 64 Bits
-		Vector<long> pd;
+			if (g_set_icon_error) {
+				g_set_icon_error = false;
 
-		pd.resize(2 + w * h);
+				WARN_PRINT("Icon too large, attempting to resize icon.");
 
-		pd.write[0] = w;
-		pd.write[1] = h;
+				int new_width, new_height;
+				if (w > h) {
+					new_width = w / 2;
+					new_height = h * new_width / w;
+				} else {
+					new_height = h / 2;
+					new_width = w * new_height / h;
+				}
 
-		PoolVector<uint8_t>::Read r = img->get_data().read();
+				w = new_width;
+				h = new_height;
 
-		long *wr = &pd.write[2];
-		uint8_t const *pr = r.ptr();
+				if (!w || !h) {
+					WARN_PRINT("Unable to set icon.");
+					break;
+				}
 
-		for (int i = 0; i < w * h; i++) {
-			long v = 0;
-			//    A             R             G            B
-			v |= pr[3] << 24 | pr[0] << 16 | pr[1] << 8 | pr[2];
-			*wr++ = v;
-			pr += 4;
+				img->resize(w, h, Image::INTERPOLATE_CUBIC);
+			}
+
+			// We're using long to have wordsize (32Bit build -> 32 Bits, 64 Bit build -> 64 Bits
+			Vector<long> pd;
+
+			pd.resize(2 + w * h);
+
+			pd.write[0] = w;
+			pd.write[1] = h;
+
+			PoolVector<uint8_t>::Read r = img->get_data().read();
+
+			long *wr = &pd.write[2];
+			uint8_t const *pr = r.ptr();
+
+			for (int i = 0; i < w * h; i++) {
+				long v = 0;
+				//    A             R             G            B
+				v |= pr[3] << 24 | pr[0] << 16 | pr[1] << 8 | pr[2];
+				*wr++ = v;
+				pr += 4;
+			}
+
+			XChangeProperty(x11_display, x11_window, net_wm_icon, XA_CARDINAL, 32, PropModeReplace, (unsigned char *)pd.ptr(), pd.size());
+
+			if (!g_set_icon_error)
+				break;
 		}
-		XChangeProperty(x11_display, x11_window, net_wm_icon, XA_CARDINAL, 32, PropModeReplace, (unsigned char *)pd.ptr(), pd.size());
 	} else {
 		XDeleteProperty(x11_display, x11_window, net_wm_icon);
 	}
+
 	XFlush(x11_display);
+	XSetErrorHandler(oldHandler);
 }
 
 void OS_X11::force_process_input() {

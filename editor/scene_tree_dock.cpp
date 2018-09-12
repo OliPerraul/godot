@@ -400,8 +400,10 @@ void SceneTreeDock::_tool_selected(int p_tool, bool p_confirm_override) {
 					editor_data->get_undo_redo().add_do_method(E->get(), "set_script", empty);
 					editor_data->get_undo_redo().add_undo_method(E->get(), "set_script", existing);
 
-					editor_data->get_undo_redo().add_do_method(E->get(), "set_meta", "_editor_icon", get_icon(E->get()->get_class(), "EditorIcons"));
-					editor_data->get_undo_redo().add_undo_method(E->get(), "set_meta", "_editor_icon", E->get()->get_meta("_editor_icon"));
+					if (E->get()->has_meta("_editor_icon")) {
+						editor_data->get_undo_redo().add_do_method(E->get(), "set_meta", "_editor_icon", get_icon(E->get()->get_class(), "EditorIcons"));
+						editor_data->get_undo_redo().add_undo_method(E->get(), "set_meta", "_editor_icon", E->get()->get_meta("_editor_icon"));
+					}
 				}
 			}
 
@@ -718,6 +720,9 @@ void SceneTreeDock::_tool_selected(int p_tool, bool p_confirm_override) {
 						node->set_scene_instance_load_placeholder(false);
 						menu->set_item_checked(placeholder_item_idx, false);
 					}
+
+					SpatialEditor::get_singleton()->update_all_gizmos(node);
+
 					scene_tree->update_tree();
 				}
 			}
@@ -1807,6 +1812,13 @@ void SceneTreeDock::_new_scene_from(String p_file) {
 	if (selection.size() != 1) {
 		accept->get_ok()->set_text(TTR("OK"));
 		accept->set_text(TTR("This operation requires a single selected node."));
+		accept->popup_centered_minsize();
+		return;
+	}
+
+	if (EditorNode::get_singleton()->is_scene_open(p_file)) {
+		accept->get_ok()->set_text(TTR("OK"));
+		accept->set_text(TTR("Can't overwrite scene that is still open!"));
 		accept->popup_centered_minsize();
 		return;
 	}
