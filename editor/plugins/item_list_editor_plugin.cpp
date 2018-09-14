@@ -30,7 +30,7 @@
 
 #include "item_list_editor_plugin.h"
 
-#include "io/resource_loader.h"
+#include "core/io/resource_loader.h"
 
 bool ItemListPlugin::_set(const StringName &p_name, const Variant &p_value) {
 
@@ -317,10 +317,7 @@ void ItemListEditor::edit(Node *p_item_list) {
 			item_plugins[i]->set_object(p_item_list);
 			property_editor->edit(item_plugins[i]);
 
-			if (has_icon(item_list->get_class(), "EditorIcons"))
-				toolbar_button->set_icon(get_icon(item_list->get_class(), "EditorIcons"));
-			else
-				toolbar_button->set_icon(Ref<Texture>());
+			toolbar_button->set_icon(EditorNode::get_singleton()->get_object_icon(item_list, ""));
 
 			selected_idx = i;
 			return;

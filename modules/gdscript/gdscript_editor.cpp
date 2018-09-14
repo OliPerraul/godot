@@ -31,16 +31,16 @@
 #include "gdscript.h"
 
 #include "core/engine.h"
+#include "core/global_constants.h"
+#include "core/os/file_access.h"
 #include "editor/editor_settings.h"
 #include "gdscript_compiler.h"
-#include "global_constants.h"
-#include "os/file_access.h"
 
 #ifdef TOOLS_ENABLED
+#include "core/engine.h"
 #include "core/reference.h"
 #include "editor/editor_file_system.h"
 #include "editor/editor_settings.h"
-#include "engine.h"
 #endif
 
 void GDScriptLanguage::get_comment_delimiters(List<String> *p_delimiters) const {
@@ -3304,7 +3304,7 @@ Error GDScriptLanguage::lookup_code(const String &p_code, const String &p_symbol
 						}
 					} else {
 						/*
-						// Because get_integer_constant_enum and get_integer_constant dont work on @GlobalScope
+						// Because get_integer_constant_enum and get_integer_constant don't work on @GlobalScope
 						// We cannot determine the exact nature of the identifier here
 						// Otherwise these codes would work
 						StringName enumName = ClassDB::get_integer_constant_enum("@GlobalScope", p_symbol, true);
